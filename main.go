@@ -125,12 +125,44 @@ func arcMerge() {
 
 // tileWindows attempts a best-effort layout based on OS. Users may need to install yabai (macOS) or wmctrl (Linux).
 func tileWindows(n int) {
-	switch runtime.GOOS {
-	case "darwin":
-		fmt.Println("macOS tiling not implemented. Install yabai or use AppleScript to tile windows.")
-	case "linux":
-		fmt.Println("Linux tiling not implemented. Install wmctrl or xdotool to tile windows.")
-	default:
-		fmt.Println("Window tiling not supported on this OS.")
-	}
+    switch runtime.GOOS {
+    case "darwin":
+        fmt.Println("macOS tiling not implemented. Install yabai or use AppleScript to tile windows.")
+    case "linux":
+        fmt.Println("Linux tiling not implemented. Install wmctrl or xdotool to tile windows.")
+    case "windows":
+        // Try to tile VSCode windows using PowerShell
+        fmt.Println("Attempting to tile VSCode windows on Windows...")
+        psScript := `
+        $codeWindows = Get-Process -Name Code | ForEach-Object {
+            $hwnd = $_.MainWindowHandle
+            if ($hwnd -ne 0) { $hwnd }
+        }
+        $count = $codeWindows.Count
+        if ($count -eq 0) { exit }
+        $screen = [System.Windows.Forms.Screen]::PrimaryScreen.WorkingArea
+        $width = [math]::Floor($screen.Width / $count)
+        $height = $screen.Height
+        for ($i = 0; $i -lt $count; $i++) {
+            $hwnd = $codeWindows[$i]
+            $x = $i * $width
+            $y = 0
+            # Move window
+            Add-Type @"
+            using System;
+            using System.Runtime.InteropServices;
+            public class WinAPI {
+                [DllImport("user32.dll")]
+                public static extern bool MoveWindow(IntPtr hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
+            }
+"@
+            [WinAPI]::MoveWindow($hwnd, $x, $y, $width, $height, $true) | Out-Null
+        }
+        `
+        cmd := exec.Command("powershell", "-NoProfile", "-Command", psScript)
+        _ = cmd.Run()
+		fmt.Println("Windows tiling complete.")
+    default:
+        fmt.Println("Window tiling not supported on this OS.")
+    }
 }
