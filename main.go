@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -48,9 +49,29 @@ func main() {
 		baseBranch = strings.TrimSpace(string(out))
 	}
 
+	// determine next branch index
+	out, err := exec.Command("git", "branch", "--list", "arcbranch-*").Output()
+	if err != nil {
+		fmt.Println("Error listing existing branches:", err)
+		os.Exit(1)
+	}
+	maxIdx := 0
+	lines := strings.Split(string(out), "\n")
+	re := regexp.MustCompile(`arcbranch-(\d+)`)
+	for _, line := range lines {
+		line = strings.TrimSpace(strings.TrimPrefix(line, "*"))
+		if parts := re.FindStringSubmatch(line); parts != nil {
+			if idx, err := strconv.Atoi(parts[1]); err == nil && idx > maxIdx {
+				maxIdx = idx
+			}
+		}
+	}
+	startIndex := maxIdx + 1
 	var created []string
-	for i := 1; i <= count; i++ {
-		branchName := fmt.Sprintf("arcbranch-%d", i)
+
+	for i := 0; i < count; i++ {
+		idx := startIndex + i
+		branchName := fmt.Sprintf("arcbranch-%d", idx)
 		fmt.Printf("Creating branch %s from %s\n", branchName, baseBranch)
 		if err := exec.Command("git", "branch", branchName, baseBranch).Run(); err != nil {
 			fmt.Println("Error creating branch", branchName, ":", err)
@@ -75,9 +96,23 @@ func main() {
 	tileWindows(count)
 
 	// record session for merging
-	session := ArcSession{Base: baseBranch, Branches: created, Parent: parentDir}
+	arcPath := filepath.Join(repoRoot, ".arcgit")
+	var session ArcSession
+	session.Base = baseBranch
+	session.Parent = parentDir
+	// if existing session file, merge previous branches
+	if buf, err := os.ReadFile(arcPath); err == nil {
+		var prev ArcSession
+		if err := json.Unmarshal(buf, &prev); err == nil {
+			session.Branches = append(prev.Branches, created...)
+		} else {
+			session.Branches = created
+		}
+	} else {
+		session.Branches = created
+	}
 	data, _ := json.MarshalIndent(session, "", "  ")
-	_ = os.WriteFile(filepath.Join(repoRoot, ".arcgit"), data, 0644)
+	_ = os.WriteFile(arcPath, data, 0644)
 }
 
 // ArcSession tracks branches for merge
