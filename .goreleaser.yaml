@@ -45,22 +45,6 @@ changelog:
       - "^docs:"
       - "^test:"
 
-npms:
-  - name: arcbranch
-    description: Make parallelizing your agentic dev work easy.
-    homepage: https://github.com/RohanAdwankar/arcbranch/
-    keywords:
-      - vibecode
-      - agentic
-      - parallel
-      - github copilot
-    license: MIT
-    author: Rohan Adwankar <rohan.adwankar@gmail.com>
-    repository: https://github.com/RohanAdwankar/arcbranch
-    bugs: https://github.com/RohanAdwankar/arcbranch/issues
-    access: public
-    format: tgz
-
 release:
   footer: >-
 
