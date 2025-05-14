@@ -4,7 +4,7 @@
 <h2 align="center">
 The GPU for VibeCoders.
 </h2>
-<h4 align="center">We make parralizing your agentic dev work easy.
+<h4 align="center">We make parallelizing your agentic dev work easy.
 </h4>
 </p>
 
