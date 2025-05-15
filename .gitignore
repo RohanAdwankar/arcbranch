@@ -1,5 +1,9 @@
 arcbranch
 arcbranch.exe
+.arcgit
+.pytest_cache
+__pycache__
+example_venv
 # Added by goreleaser init:
 dist/
 .DS_Store
