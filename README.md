@@ -8,6 +8,11 @@ The GPU for VibeCoders.
 </h4>
 </p>
 
+## Install
+2 options
+- npm install -g arcbranch
+- [Github Releases](https://github.com/RohanAdwankar/arcbranch/releases) 
+
 ## Current Features 
 
 arcbranch [n] [branch]
