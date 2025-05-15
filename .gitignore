@@ -2,3 +2,4 @@ arcbranch
 arcbranch.exe
 # Added by goreleaser init:
 dist/
+.DS_Store

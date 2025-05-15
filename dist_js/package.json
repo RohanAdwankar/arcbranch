@@ -1,0 +1,36 @@
+{
+  "name": "arcbranch",
+  "version": "0.1.2",
+  "description": "A CLI tool to create multiple git branches, worktrees, open VSCode windows, and tile them.",
+  "main": "index.js",
+  "bin": {
+    "arcbranch": "./index.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/download-binary.js"
+  },
+  "keywords": [
+    "git",
+    "branch",
+    "worktree",
+    "vscode",
+    "cli",
+    "arcbranch"
+  ],
+  "author": "Rohan Adwankar",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "files": [
+    "index.js",
+    "bin/arcbranch",
+    "scripts/",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RohanAdwankar/arcbranch.git"
+  },
+  "dependencies": {}
+}

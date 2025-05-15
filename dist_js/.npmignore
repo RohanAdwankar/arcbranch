@@ -1,0 +1,36 @@
+# Source code
+*.go
+*.mod
+*.sum
+
+# Git files
+.git*
+
+# Build files
+build/
+*.o
+*.a
+
+# Development and test files
+test/
+examples/
+docs/
+
+# Logs
+*.log
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development scripts
+build-binaries.sh
+
+# Release artifacts that don't need to be in npm
+release/
