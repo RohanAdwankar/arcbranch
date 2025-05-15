@@ -24,6 +24,10 @@ function getDownloadUrl() {
 function download(url, dest, cb) {
   const file = fs.createWriteStream(dest);
   https.get(url, (res) => {
+    // follow redirects (GitHub release URLs often redirect)
+    if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+      return download(res.headers.location, dest, cb);
+    }
     if (res.statusCode !== 200) {
       return cb(new Error(`Download failed: ${res.statusCode}`));
     }
