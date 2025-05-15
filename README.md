@@ -21,3 +21,8 @@ arcbranch merge
 arcbranch smerge
 - Smart/Semanic merge to quickly combine branches
 - Takes into account test results to choose the merge which maximizes test performance
+
+## Why?
+A huge part of developer productivity is the tooling.
+If agentic devwork is [here to stay](https://www.youtube.com/watch?v=dq8MhTFCs80), it deserves powerful, specialized, and opionated tooling.
+We aim to build just that for Editor/IDE/LLM agnostic tooling.
