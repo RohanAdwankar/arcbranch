@@ -1,0 +1,5 @@
+python-multipart
+fastapi
+pytest
+requests
+httpx
