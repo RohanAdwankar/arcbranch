@@ -5,5 +5,9 @@ app = FastAPI()
 
 @app.get("/joke")
 def get_joke():
-    response = requests.get("https://official-joke-api.appspot.com/jokes/random")
-    return response.json()
+    # 1. Send a GET request to the Official Joke API's /jokes/random endpoint.
+    
+    # 2. Parse the JSON response.
+    
+    # 3. Return the parsed JSON directly as the response.
+    ...

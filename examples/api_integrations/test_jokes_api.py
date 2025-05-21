@@ -35,6 +35,6 @@ def test_joke_api_has_rate_limiting():
     # Make one more request that should be rate limited
     response = client.get("/joke")
     
-    # This will fail because your API doesn't implement rate limiting
+    # This will fail if API doesn't implement rate limiting
     assert response.status_code == 429
     assert "rate limit exceeded" in response.json().get("detail", "").lower()

@@ -1,17 +1,17 @@
 import pytest
 from fastapi.testclient import TestClient
-from event_tracker import app, events
+from event_tracker import app
 import uuid
-import json
 from datetime import datetime
 
 # Create test client
 client = TestClient(app)
 
-# Fixture to clear events between tests
+# Clean up before each test by resetting the API state
 @pytest.fixture(autouse=True)
 def clear_events():
-    events.clear()
+    # Use the API to clear events (you'll need to add this endpoint)
+    client.delete("/track")
     yield
 
 def test_track_event_basic():
@@ -23,10 +23,12 @@ def test_track_event_basic():
     assert "event_id" in response.json()
     assert response.json()["message"] == "Event logged"
     
-    # Check that event was stored
+    # Check that event was stored via the GET endpoint
+    events_response = client.get("/track")
+    events = events_response.json()
     assert len(events) == 1
     assert events[0]["action"] == "page_view"
-    assert "id" in events[0]
+    assert "event_id" in events[0]
     assert "timestamp" in events[0]
     assert isinstance(events[0]["properties"], dict)
 
@@ -44,6 +46,8 @@ def test_track_event_with_properties():
     assert response.status_code == 200
     
     # Check that event was stored with properties
+    events_response = client.get("/track")
+    events = events_response.json()
     assert len(events) == 1
     assert events[0]["action"] == "button_click"
     assert events[0]["properties"]["button_id"] == "submit"
@@ -75,10 +79,11 @@ def test_get_events_multiple():
     response = client.get("/track")
     
     assert response.status_code == 200
-    assert len(response.json()) == 3
-    assert response.json()[0]["action"] == "event1"
-    assert response.json()[1]["action"] == "event2"
-    assert response.json()[2]["action"] == "event3"
+    events_data = response.json()
+    assert len(events_data) == 3
+    assert events_data[0]["action"] == "event1"
+    assert events_data[1]["action"] == "event2"
+    assert events_data[2]["action"] == "event3"
 
 def test_track_event_id_generation():
     """Test UUID generation for events"""
@@ -94,9 +99,12 @@ def test_track_event_id_generation():
 
 def test_track_event_timestamp():
     """Test timestamp generation for events"""
-    response = client.post("/track", json={"action": "test_action"})
+    client.post("/track", json={"action": "test_action"})
     
-    # Verify timestamp is present and parseable
+    # Get the event and verify timestamp format
+    response = client.get("/track")
+    events = response.json()
+    
     timestamp_str = events[0]["timestamp"]
     try:
         # Try to parse the timestamp
