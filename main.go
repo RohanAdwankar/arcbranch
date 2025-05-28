@@ -16,20 +16,21 @@ import (
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Println("Usage: arcbranch <count> [base-branch] OR arcbranch merge [pytest]")
+		fmt.Println("Usage: arcbranch <count> [base-branch] OR arcbranch merge [base-branch] OR arcbranch pymerge")
 		os.Exit(1)
 	}
 	if os.Args[1] == "merge" {
-		if len(os.Args) >= 3 && os.Args[2] == "pytest" {
-			arcMergePytest()
-		} else {
-			arcMerge()
-		}
+		arcMerge()
+		return
+	}
+	if os.Args[1] == "pymerge" {
+		fmt.Println("[arcbranch] Running pytest-based merge (pymerge)...")
+		arcMergePytest()
 		return
 	}
 	count, err := strconv.Atoi(os.Args[1])
 	if err != nil || count < 1 {
-		fmt.Println("Error: count must be a positive integer")
+		fmt.Printf("Error: count must be a positive integer (got '%s')\n", os.Args[1])
 		os.Exit(1)
 	}
 
@@ -180,6 +181,11 @@ func arcMergePytest() {
 		os.Exit(1)
 	}
 
+	fmt.Println("[arcbranch] Discovered worktrees for merge:")
+	for _, b := range session.Branches {
+		fmt.Printf("  - %s (worktree: %s)\n", b, filepath.Join(session.Parent, b))
+	}
+
 	type mergeResult struct {
 		branch    string
 		merged    bool
@@ -193,7 +199,7 @@ func arcMergePytest() {
 		b := b // capture for goroutine
 		go func() {
 			wtPath := filepath.Join(session.Parent, b)
-			// Check for uncommitted changes
+			fmt.Printf("[arcbranch][%s] Checking for uncommitted changes...\n", b)
 			cmd := exec.Command("git", "status", "--porcelain")
 			cmd.Dir = wtPath
 			out, err := cmd.Output()
@@ -236,15 +242,15 @@ func arcMergePytest() {
 				results <- mergeResult{branch: b, merged: false, reason: "no test file found"}
 				return
 			}
-			// Run pytest on the test file
+			fmt.Printf("[arcbranch][%s] Running pytest on %s...\n", b, foundTest)
 			pytestCmd := exec.Command("pytest", foundTest, "--maxfail=1", "--disable-warnings", "-q")
 			pytestCmd.Dir = wtPath
 			pytestOut, err := pytestCmd.CombinedOutput()
+			fmt.Printf("[arcbranch][%s] Pytest output:\n%s\n", b, string(pytestOut))
 			if err != nil {
 				results <- mergeResult{branch: b, merged: false, reason: "pytest failed", testFile: foundTest, pytestOut: string(pytestOut)}
 				return
 			}
-			// Stage and commit
 			addCmd := exec.Command("git", "add", changedFile)
 			addCmd.Dir = wtPath
 			if err := addCmd.Run(); err != nil {
@@ -266,20 +272,23 @@ func arcMergePytest() {
 	for i := 0; i < len(session.Branches); i++ {
 		res := <-results
 		if res.merged {
-			fmt.Printf("[pytest merge] Branch %s merged (test: %s)\n", res.branch, res.testFile)
-			mergedBranches[res.branch] = true
+			fmt.Printf("[arcbranch][%s] MERGED (test: %s)\n", res.branch, res.testFile)
 		} else {
-			fmt.Printf("[pytest merge] Branch %s NOT merged: %s\n", res.branch, res.reason)
+			fmt.Printf("[arcbranch][%s] NOT merged: %s\n", res.branch, res.reason)
 		}
+		if res.pytestOut != "" {
+			fmt.Printf("[arcbranch][%s] Pytest output:\n%s\n", res.branch, res.pytestOut)
+		}
+		mergedBranches[res.branch] = res.merged
 	}
 
-	// Now, for merged branches, merge and clean up as in arcMerge
+	fmt.Println("[arcbranch] Merging successful branches into base and cleaning up...")
 	exec.Command("git", "checkout", session.Base).Run()
 	for _, b := range session.Branches {
 		if mergedBranches[b] {
-			fmt.Println("Merging branch", b)
+			fmt.Printf("[arcbranch][%s] Merging into base...\n", b)
 			if err := exec.Command("git", "merge", "--no-ff", b).Run(); err != nil {
-				fmt.Println("Conflict merging", b, ":", err)
+				fmt.Printf("[arcbranch][%s] Conflict merging: %v\n", b, err)
 				continue
 			}
 			wtPath := filepath.Join(session.Parent, b)
@@ -288,21 +297,21 @@ func arcMergePytest() {
 			os.RemoveAll(wtPath)
 		}
 	}
-	// For unmerged branches, sync with base branch
+	fmt.Println("[arcbranch] Syncing unmerged branches with base...")
 	for _, b := range session.Branches {
 		if mergedBranches[b] {
 			continue
 		}
 		wtPath := filepath.Join(session.Parent, b)
-		fmt.Printf("Syncing branch %s with base %s...\n", b, session.Base)
+		fmt.Printf("[arcbranch][%s] Syncing with base %s...\n", b, session.Base)
 		mergeCmd := exec.Command("git", "merge", session.Base)
 		mergeCmd.Dir = wtPath
 		if err := mergeCmd.Run(); err != nil {
-			fmt.Printf("Error syncing branch %s: %v\n", b, err)
+			fmt.Printf("[arcbranch][%s] Error syncing: %v\n", b, err)
 		}
 	}
 	os.Remove(filepath.Join(repoRoot, ".arcgit"))
-	fmt.Println("Pytest merge complete and cleaned up.")
+	fmt.Println("[arcbranch] Pytest merge complete and cleaned up.")
 }
 
 // tileWindows attempts a best-effort layout based on OS. Users may need to install yabai (macOS) or wmctrl (Linux).
