@@ -296,6 +296,7 @@ func arcMergePytest() {
 			exec.Command("git", "branch", "-d", b).Run()
 			os.RemoveAll(wtPath)
 		}
+		// For NOT merged branches, do nothing: leave branch and worktree intact
 	}
 	fmt.Println("[arcbranch] Syncing unmerged branches with base...")
 	for _, b := range session.Branches {
@@ -310,8 +311,33 @@ func arcMergePytest() {
 			fmt.Printf("[arcbranch][%s] Error syncing: %v\n", b, err)
 		}
 	}
-	os.Remove(filepath.Join(repoRoot, ".arcgit"))
-	fmt.Println("[arcbranch] Pytest merge complete and cleaned up.")
+
+	// Only remove .arcgit if all worktrees and branches are gone
+	allWorktreesGone := true
+	for _, b := range session.Branches {
+		wtPath := filepath.Join(session.Parent, b)
+		if _, err := os.Stat(wtPath); err == nil {
+			allWorktreesGone = false
+			break
+		}
+	}
+	allBranchesGone := true
+	out, err := exec.Command("git", "branch", "--list", "arcbranch-*").Output()
+	if err == nil {
+		branchLines := strings.Split(strings.TrimSpace(string(out)), "\n")
+		for _, line := range branchLines {
+			if strings.HasPrefix(strings.TrimSpace(strings.TrimPrefix(line, "*")), "arcbranch-") {
+				allBranchesGone = false
+				break
+			}
+		}
+	}
+	if allWorktreesGone && allBranchesGone {
+		os.Remove(filepath.Join(repoRoot, ".arcgit"))
+		fmt.Println("[arcbranch] Pytest merge complete and cleaned up.")
+	} else {
+		fmt.Println("[arcbranch] Some worktrees or branches remain; .arcgit session preserved.")
+	}
 }
 
 // tileWindows attempts a best-effort layout based on OS. Users may need to install yabai (macOS) or wmctrl (Linux).
